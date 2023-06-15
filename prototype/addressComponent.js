@@ -134,6 +134,70 @@ class AddressComponent extends BaseComponent {
         }
     }
 
+    //通过IP地址获取精确位置
+    async geocoder(req) {
+        try {
+            const address = await this.guessPostion(req);
+            const params = {
+                key: this.tencentkey,
+                location: address.lat + ',' + address.lng
+            };
+            let res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+            if (res.status != 0) {
+                params.key = this.tencentkey2;
+                res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+            }
+            if (res.status != 0) {
+                params.key = this.tencentkey3;
+                res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+            }
+            if (res.status != 0) {
+                params.key = this.tencentkey4;
+                res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+            }
+
+            if (res.status == 0) {
+                return res;
+            } else {
+                throw new Error('获取具体位置信息失败');
+            }
+        } catch (err) {
+            console.log('geocoder获取定位失败', err);
+            throw new Error(err);
+        }
+    }
+
+    //第二种精确定位法
+    async getpois(lat, lng) {
+        try {
+            const params = {
+                key: this.tencentkey,
+                location: lat + ',' + lng
+            };
+            let res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+
+            if (res.status != 0) {
+                params.key = this.tencentkey2;
+                res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+            }
+            if (res.status != 0) {
+                params.key = this.tencentkey3;
+                res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+            }
+            if (res.status != 0) {
+                params.key = this.tencentkey4;
+                res = await this.fetchDate('https://apis.map.qq.com/ws/geocoder/v1/', params);
+            }
+            if (res.status == 0) {
+                return res;
+            } else {
+                throw new Error('通过geohash获取位置信息失败');
+            }
+        } catch (err) {
+            console.log('getpois获取定位信息失败', err);
+            throw new Error(err);
+        }
+    }
 
 
 }
