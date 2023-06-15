@@ -28,7 +28,7 @@ class BaseComponent {
             })
 
             if (dataStr !== '') {
-                // dataStr = dataStr.substring(0, dataStr.lastIndexOf('&'));
+                dataStr = dataStr.substring(0, dataStr.lastIndexOf('&'));
                 url = url + '?' + dataStr;
             }
         }

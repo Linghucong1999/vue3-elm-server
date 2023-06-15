@@ -90,6 +90,49 @@ class AddressComponent extends BaseComponent {
         }
     }
 
+    //测量距离
+    async getDistance(from, to, type) {
+        try {
+            let res;
+            res = await this.fetchDate('https://api.map.baidu.com/routematrix/v2/driving', {
+                output: 'json',
+                origins: from,
+                destinations: to,
+                ak: this.baidukey
+            })
+
+            if (res.status == 0) {
+                const positionArr = [];
+                let timevalue;
+                res.result.forEach(item => {
+                    timevalue = parseInt(item.duration.value) + 1200;   //1200是考虑一下环境因素，给个特定的经验值，每增加1.2公里就会额外增加20分钟，包括了等红灯等因素
+                    let durationtime = Math.ceil(timevalue % 3600 / 60) + '分钟';
+                    if (Math.floor(timevalue / 3600)) {
+                        durationtime = Math.floor(timevalue / 3600) + '小时' + durationtime;
+                    }
+                    positionArr.push({
+                        distance: item.distance.text,
+                        order_lead_time: durationtime
+                    })
+
+                    if (type == 'timevalue') {
+                        return timevalue;
+                    } else {
+                        return positionArr;
+                    }
+                })
+            } else {
+                if (type == 'timevalue') {
+                    return 2000;
+                } else {
+                    throw new Error("调用百度地图测量距离失败");
+                }
+            }
+        } catch (err) {
+            console.log('获取距离位置失败');
+            throw new Error(err);
+        }
+    }
 
 
 
