@@ -47,6 +47,36 @@ class Category extends BaseComponent {
         }
     }
 
+    //获取配送方式
+    async getDeliver(req, res, next) {
+        try {
+            const deliveries = await DeliveryModel.find({}, { _id: 0 });
+            res.send(deliveries);
+        } catch (err) {
+            console.log('获取配送方式数据失败');
+            res.send({
+                status: 0,
+                type: 'ERROR_DATA',
+                message: '获取配送方式数据失败'
+            })
+        }
+    }
+
+    //获取活动列表
+    async getActivity(req, res, next) {
+        try {
+            const activities = await ActivityModel.find({}, { _id: 0 });
+            res.send(activities);
+        } catch (err) {
+            console.log('获取活动列表失败');
+            res.send({
+                status: 0,
+                type: 'ERROR_DATA',
+                message: '获取活动列表失败'
+            })
+        }
+    }
+
 }
 
 module.exports = new Category();
