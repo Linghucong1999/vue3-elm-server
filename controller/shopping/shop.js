@@ -89,7 +89,7 @@ class Shop extends AddressConpont {
                     tips: '配送费￥' + (fields.float_delivery_fee || 0),
                 },
                 activities: [],
-                suppprts: [],
+                supports: [],
                 license: {
                     business_license_image: fields.business_license_image || '',
                     catering_service_license_image: fields.catering_service_license_image || ''
@@ -110,8 +110,79 @@ class Shop extends AddressConpont {
             }
 
             //配送方式
-            if(fields.delivery_mode){
-                Object
+            if (fields.delivery_mode) {
+                Object.assign(newShop, {
+                    delivery_mode: {
+                        color: '57a9ff',
+                        id: 1,
+                        is_solid: true,
+                        text: '顺丰快运'
+                    }
+                })
+            }
+
+            //商店支持的活动
+            fields.activities.forEach((item, index) => {
+                switch (item.icon_name) {
+                    case '减':
+                        item.icon_color = 'f07373';
+                        item.id = index + 1;
+                        break;
+                    case '特':
+                        item.icon_color = 'edc123';
+                        item.id = index + 1;
+                        break;
+                    case '新':
+                        item.icon_color = '70bc46';
+                        item.id = index + 1;
+                        break;
+                    case '领':
+                        item.icon_color = 'e3ee0d';
+                        item.id = index + 1;
+                        break;
+
+                }
+                newShop.activities.push(item)
+
+            })
+
+            if (fields.bao) {
+                newShop.supports.push({
+                    description: '已加入"外卖保"计划,食品安全有保障',
+                    icon_color: '999999',
+                    icon_name: '保',
+                    id: 7,
+                    name: '外卖保'
+                })
+            }
+            if (fields.onTime) {
+                newShop.supports.push({
+                    description: '准时到达,超时赔偿',
+                    icon_color: '57a9ff',
+                    icon_name: '准',
+                    id: 9,
+                    name: '准时达'
+                })
+            }
+            if (fields.bill) {
+                newShop.supports.push({
+                    description: '该商家支持开据发票,请在下单前填写好发票抬头',
+                    icon_color: '999999',
+                    icon_name: '票',
+                    id: 4,
+                    name: '开发票'
+                })
+            }
+
+            try {
+                //保存数据,并增加对应的食品种类的数量
+                const shop=new ShopModel(newShop);
+                await shop.save();
+                CategoryHandle.addCategory(fields.category);
+                
+
+            } catch (err) {
+
             }
         })
 
