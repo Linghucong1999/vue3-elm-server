@@ -91,6 +91,13 @@ class Admin extends AddressComponent {
 
     }
 
+    async register(req, res, next) {
+        const form=new formidable.IncomingForm();
+        form.parse(req,async (err,fields,files)=>{
+            
+        })
+    }
+
 
     encryption(password) {
         const newpassword = this.Md5(this.Md5(password).substring(2, 7)) + this.Md5(password);
