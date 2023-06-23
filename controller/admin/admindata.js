@@ -67,15 +67,62 @@ class AdminAxios extends AddressComponent {
             }
         } catch (err) {
             res.send({
-                status:0,
-                type:'ERROR_ADMIN_FAILED',
-                message:'登录失败'
+                status: 0,
+                type: 'ERROR_ADMIN_FAILED',
+                message: '登录失败'
             })
         }
 
     }
     async register(req, res, next) {
 
+    }
+
+    async getAlladmin(req, res, next) {
+        const { limit = 20, offset = 0 } = req.query
+        try {
+            const allAdmin = await AdminModel.find({}, { _id: 0, password: 0 }).sort({ id: -1 }).skip(Number(offset)).limit(Number(limit));
+            res.send({
+                status: 1,
+                data: allAdmin
+            })
+        } catch (err) {
+            res.send({
+                status: 0,
+                type: 'ERROP_GET_ADMIN_LIST',
+                message: '获取管理员列表失败'
+            })
+        }
+    }
+
+    async getAdminInfo(req, res, next) {
+        const admin_id = req.session.admin_id;
+        if (!admin_id || !Number(admin_id)) {
+            res.send({
+                status: 0,
+                type: 'ERROR_SESSION',
+                message: '获取指定管理员失败'
+            })
+            return
+        }
+
+        try {
+            const info = await AdminModel.findOne({ id: admin_id }, { _id: 0, password: 0, __v: 0 });
+            if (!info) {
+                throw new Error('未找到当前管理员')
+            } else {
+                res.send({
+                    status: 1,
+                    data: info
+                })
+            }
+        } catch (err) {
+            res.send({
+                status: 0,
+                type: 'GET_ADMIN_INFO_FAILED',
+                message: '当前管理员获取失败'
+            })
+        }
     }
 }
 
