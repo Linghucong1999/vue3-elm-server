@@ -10,7 +10,7 @@ class Admin extends AddressComponent {
         this.login = this.login.bind(this);
         this.register = this.register.bind(this);
         this.encryption = this.encryption.bind(this);
-        this.updateAvatar = this.updateAvatar.bind(this);
+        // this.updateAvatar = this.updateAvatar.bind(this);
     }
 
     async login(req, res, next) {
@@ -24,7 +24,6 @@ class Admin extends AddressComponent {
                 })
                 return
             }
-
             const { user_name, password, status = 1 } = fields;
             try {
                 if (!user_name) {
@@ -56,7 +55,7 @@ class Admin extends AddressComponent {
                         create_time: dtime().format('YYYY-MM-DD HH:mm'),
                         admin: adminTip,
                         status,
-                        city: cityInfo
+                        city: cityInfo.city
                     }
                     await AdminModel.create(newAdmin);
                     req.session.admin_id = admin_id;
@@ -92,9 +91,9 @@ class Admin extends AddressComponent {
     }
 
     async register(req, res, next) {
-        const form=new formidable.IncomingForm();
-        form.parse(req,async (err,fields,files)=>{
-            
+        const form = new formidable.IncomingForm();
+        form.parse(req, async (err, fields, files) => {
+
         })
     }
 
