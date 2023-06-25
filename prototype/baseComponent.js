@@ -14,7 +14,8 @@ class BaseComponent {
         this.idList = ['restaurant_id', 'food_id', 'order_id', 'user_id', 'address_id', 'cart_id', 'img_id', 'category_id', 'item_id', 'sku_id', 'admin_id', 'statis_id'];
         this.imgTypeList = ['shop', 'food', 'avatar', 'default'];
         this.uploadImg = this.uploadImg.bind(this);
-        this.qiniucon = this.qiniucon.bind(this);
+        // this.qiniucon = this.qiniucon.bind(this);
+        this.getPath = this.getPath.bind(this);
     }
 
     //连接api
@@ -100,7 +101,7 @@ class BaseComponent {
     async getPath(req, res) {
         return new Promise((resolve, reject) => {
             const form = formidable.IncomingForm();
-            form.uploadDir = '../public/img';
+            form.uploadDir = './public/img';
             form.parse(req, async (err, fields, files) => {
                 let img_id;
                 try {
@@ -125,7 +126,7 @@ class BaseComponent {
                 }
 
                 const fullName = hashName + extname;
-                const repath = '../public/img/' + fullName;
+                const repath = './public/img/' + fullName;
                 try {
                     fs.renameSync(files.file.path, repath);
                     gm(repath).size(200, 200, '!').write(repath, async (err) => {
@@ -148,7 +149,7 @@ class BaseComponent {
     async qiniucon(req, type = 'default') {
         return new Promise((resolve, reject) => {
             const form = formidable.IncomingForm();
-            form.uploadDir = '../public/img';
+            form.uploadDir = './public/img';
             form.parse(req, async (err, fields, files) => {
                 let img_id;
                 try {
@@ -159,15 +160,14 @@ class BaseComponent {
                     fs.unlinkSync(files.file.path);
                     reject('获取图片id失败');
                 }
-
                 const hashName = (new Date().getTime() + Math.ceil(Math.random() * 10000)).toString(16) + img_id;
                 const extname = path.extname(files.file.name);
-                const repath = '../public/img/' + hashName + extname;
+                const repath = './public/img/' + hashName + extname;
                 try {
                     const key = hashName + extname;
                     await fs.rename(files.file.path, repath);
                     const token = this.uptoken('v3--elm-image-upload', key);
-                    const qiniuImg = await this.uploadImg(token.toString(), key, repath);
+                    const qiniuImg = await this.uploadFile(token.toString(), key, repath);
                     fs.unlinkSync(repath);
                     resolve(qiniuImg);
                 } catch (err) {
@@ -187,7 +187,7 @@ class BaseComponent {
     async uploadFile(uptoken, key, localFile) {
         return Promise((resolve, reject) => {
             let extra = new qiniu.io.PutExtra();
-            qiniu.io.putFile(uptoken, key, localFile, (err, ret) => {
+            qiniu.io.putFile(uptoken, key, localFile, extra,(err, ret) => {
                 if (!err) {
                     resolve(ret.key);
                 } else {
