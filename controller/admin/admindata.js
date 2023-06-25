@@ -9,7 +9,7 @@ class AdminAxios extends AddressComponent {
         super();
         this.login = this.login.bind(this);
         this.register = this.register.bind(this);
-        this.updataAvatar=this.updataAvatar.bind(this);
+        this.updataAvatar = this.updataAvatar.bind(this);
     }
 
     async login(req, res, next) {
@@ -158,22 +158,30 @@ class AdminAxios extends AddressComponent {
 
     async updataAvatar(req, res, next) {
         const admin_id = req.params.admin_id;
-        if(!admin_id||!Number(admin_id)){
+        if (!admin_id || !Number(admin_id)) {
             res.send({
-                status:0,
-                type:'ERROR_ADMIN',
-                message:'admin_id参数错误'
+                status: 0,
+                type: 'ERROR_ADMIN',
+                message: 'admin_id参数错误'
             })
             return
         }
 
-        try{
+        try {
             const image_path=await this.qiniucon(req);
+            await AdminModel.findOneAndUpdate({id:admin_id},{$set:{avatar:image_path}});
             res.send({
+                status:1,
                 image_path
             })
-        }catch(err){
-
+            return
+        } catch (err) {
+            res.send({
+                status:0,
+                type:'ERROR_UPLOAD_IMG',
+                message:'上传图片失败'
+            })
+            return
         }
     }
 }
