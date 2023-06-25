@@ -173,10 +173,9 @@ class BaseComponent {
                         if (err) throw new Error(err);
                     });
                     const token = this.uptoken('v3--elm-image-upload', key);
-                    resolve(token);
-                    // const qiniuImg = await this.uploadFile(token.toString(), key, repath);
-                    // fs.unlinkSync(repath);
-                    // resolve(qiniuImg);
+                    const qiniuImg = await this.uploadFile(token.toString(), key, repath);
+                    fs.unlinkSync(repath);
+                    resolve(qiniuImg);
                 } catch (err) {
                     console.log('图片保存至七牛失败:', err);
                     fs.unlinkSync(repath);
