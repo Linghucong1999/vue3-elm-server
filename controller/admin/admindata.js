@@ -9,6 +9,7 @@ class AdminAxios extends AddressComponent {
         super();
         this.login = this.login.bind(this);
         this.register = this.register.bind(this);
+        this.updataAvatar=this.updataAvatar.bind(this);
     }
 
     async login(req, res, next) {
@@ -122,6 +123,57 @@ class AdminAxios extends AddressComponent {
                 type: 'GET_ADMIN_INFO_FAILED',
                 message: '当前管理员获取失败'
             })
+        }
+    }
+
+    async singout(req, res, next) {
+        try {
+            delete req.session.admin_id;
+            res.send({
+                status: 1,
+                success: '退出成功',
+            })
+        } catch (err) {
+            res.send({
+                status: 0,
+                message: '退出失败'
+            })
+        }
+    }
+
+    async getAdminCount(req, res, next) {
+        try {
+            const count = await AdminModel.count();
+            res.send({
+                status: 1,
+                count
+            })
+        } catch (err) {
+            res.send({
+                status: 0,
+                message: '获取管理员数量失败'
+            })
+        }
+    }
+
+    async updataAvatar(req, res, next) {
+        const admin_id = req.params.admin_id;
+        if(!admin_id||!Number(admin_id)){
+            res.send({
+                status:0,
+                type:'ERROR_ADMIN',
+                message:'admin_id参数错误'
+            })
+            return
+        }
+
+        try{
+            const image_path=await this.qiniucon(req);
+            res.send({
+                image_path
+            })
+        }catch(err){
+
         }
     }
 }
