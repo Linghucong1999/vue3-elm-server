@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const Ids = require('../models/ids.js');
 const formidable = require('formidable');
+// import formidable from 'formidable';
 const qiniu = require('qiniu');
 const gm = require('gm');
 
@@ -14,7 +15,7 @@ class BaseComponent {
         this.idList = ['restaurant_id', 'food_id', 'order_id', 'user_id', 'address_id', 'cart_id', 'img_id', 'category_id', 'item_id', 'sku_id', 'admin_id', 'statis_id'];
         this.imgTypeList = ['shop', 'food', 'avatar', 'default'];
         this.uploadImg = this.uploadImg.bind(this);
-        // this.qiniucon = this.qiniucon.bind(this);
+        this.qiniucon = this.qiniucon.bind(this);
         this.getPath = this.getPath.bind(this);
     }
 
@@ -100,7 +101,7 @@ class BaseComponent {
 
     async getPath(req, res) {
         return new Promise((resolve, reject) => {
-            const form = formidable.IncomingForm();
+            const form = formidable({});
             form.uploadDir = './public/img';
             form.parse(req, async (err, fields, files) => {
                 let img_id;
@@ -108,14 +109,14 @@ class BaseComponent {
                     img_id = await this.getId('img_id');
                 } catch (err) {
                     console.log('获取图片id失败');
-                    fs.unlinkSync(files.file.path);
+                    fs.unlinkSync(files.file.filepath);
                     reject('获取图片id失败');
                 }
 
                 const hashName = (new Date().getTime() + Math.ceil(Math.random() * 10000)).toString(16) + img_id;
-                const extname = path.extname(files.file.name);
+                const extname = path.extname(files.file.originalFilename);
                 if (!['.jpg', '.jpeg', '.png'].includes(extname)) {
-                    fs.unlinkSync(files.file.path);
+                    fs.unlinkSync(files.file.filepath);
                     res.send({
                         status: 0,
                         type: 'ERROR_EXTNAME',
@@ -128,7 +129,9 @@ class BaseComponent {
                 const fullName = hashName + extname;
                 const repath = './public/img/' + fullName;
                 try {
-                    fs.renameSync(files.file.path, repath);
+                    await fs.rename(files.file.filepath, repath, (err) => {
+                        if (err) throw new Error(err);
+                    });
                     gm(repath).size(200, 200, '!').write(repath, async (err) => {
                         resolve(fullName);
                     })
@@ -137,7 +140,7 @@ class BaseComponent {
                     if (fs.existsSync(repath)) {
                         fs.unlinkSync(repath);
                     } else {
-                        fs.unlinkSync(files.file.path);
+                        fs.unlinkSync(files.file.filepath);
                     }
                     reject('保存图片失败');
                 }
@@ -148,7 +151,7 @@ class BaseComponent {
 
     async qiniucon(req, type = 'default') {
         return new Promise((resolve, reject) => {
-            const form = formidable.IncomingForm();
+            const form = formidable({});
             form.uploadDir = './public/img';
             form.parse(req, async (err, fields, files) => {
                 let img_id;
@@ -161,15 +164,19 @@ class BaseComponent {
                     reject('获取图片id失败');
                 }
                 const hashName = (new Date().getTime() + Math.ceil(Math.random() * 10000)).toString(16) + img_id;
-                const extname = path.extname(files.file.name);
+                const extname = path.extname(files.file.originalFilename);
                 const repath = './public/img/' + hashName + extname;
+
                 try {
                     const key = hashName + extname;
-                    await fs.rename(files.file.path, repath);
+                    await fs.rename(files.file.filepath, repath, (err) => {
+                        if (err) throw new Error(err);
+                    });
                     const token = this.uptoken('v3--elm-image-upload', key);
-                    const qiniuImg = await this.uploadFile(token.toString(), key, repath);
-                    fs.unlinkSync(repath);
-                    resolve(qiniuImg);
+                    resolve(token);
+                    // const qiniuImg = await this.uploadFile(token.toString(), key, repath);
+                    // fs.unlinkSync(repath);
+                    // resolve(qiniuImg);
                 } catch (err) {
                     console.log('图片保存至七牛失败:', err);
                     fs.unlinkSync(repath);
@@ -185,14 +192,15 @@ class BaseComponent {
     }
 
     async uploadFile(uptoken, key, localFile) {
-        return Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             let extra = new qiniu.io.PutExtra();
-            qiniu.io.putFile(uptoken, key, localFile, extra,(err, ret) => {
+            qiniu.io.putFile(uptoken, key, localFile, extra, (err, ret) => {
                 if (!err) {
                     resolve(ret.key);
                 } else {
-                    console.log('图片上传失败', err);
-                    reject(err);
+                    // console.log('图片上传失败', err);
+                    fs.unlinkSync(localFile)
+                    reject('图片上传失败');
                 }
             })
         })
