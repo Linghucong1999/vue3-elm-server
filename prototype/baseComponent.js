@@ -86,8 +86,8 @@ class BaseComponent {
     async uploadImg(req, res, next) {
         const type = req.params.type;
         try {
-            const image_path = await this.qiniucon(req, type);  //上传到云服务器
-            // const image_path=await this.getPath(req,res);    //直接存到本地
+            // const image_path = await this.qiniucon(req, type);  //上传到云服务器
+            const image_path = await this.getPath(req, res);    //直接存到本地
             res.send({ status: 1, image_path });
         } catch (err) {
             console.log('上传图片失败:' + err);
@@ -129,20 +129,21 @@ class BaseComponent {
                 const fullName = hashName + extname;
                 const repath = './public/img/' + fullName;
                 try {
-                    await fs.rename(files.file.filepath, repath, (err) => {
+                    fs.rename(files.file.filepath, repath, (err) => {
                         if (err) throw new Error(err);
                     });
-                    gm(repath).size(200, 200, '!').write(repath, async (err) => {
-                        resolve(fullName);
+                    gm(repath).resize(200,200,'!').write(repath, (err)=>{
+                        if(err) reject(err);
+                        else resolve(fullName);
                     })
                 } catch (err) {
-                    console.log('保存图片失败！');
+                    console.log(err);
                     if (fs.existsSync(repath)) {
                         fs.unlinkSync(repath);
                     } else {
                         fs.unlinkSync(files.file.filepath);
                     }
-                    reject('保存图片失败');
+                    reject('保存图片失败！');
                 }
             })
         })
@@ -197,7 +198,6 @@ class BaseComponent {
                 if (!err) {
                     resolve(ret.key);
                 } else {
-                    // console.log('图片上传失败', err);
                     fs.unlinkSync(localFile)
                     reject('图片上传失败');
                 }
