@@ -5,7 +5,11 @@ const Ids = require('../models/ids.js');
 const formidable = require('formidable');
 // import formidable from 'formidable';
 const qiniu = require('qiniu');
-const gm = require('gm');
+const shrap = require('sharp');
+const { fit } = require('sharp');
+const sharp = require('sharp');
+
+
 
 qiniu.conf.ACCESS_KEY = 'csn9x6TTRJUoZcH3WRIzYq6oHalGvscT6hHHpDLJ';
 qiniu.conf.SECRET_KEY = 'rs5ucKu52fgDmTZGss-98WCOycRB0Ibjv-bmU1VB';
@@ -102,7 +106,7 @@ class BaseComponent {
     async getPath(req, res) {
         return new Promise((resolve, reject) => {
             const form = formidable({});
-            form.uploadDir = './public/img';
+            form.uploadDir = './public/tempImg';
             form.parse(req, async (err, fields, files) => {
                 let img_id;
                 try {
@@ -127,17 +131,26 @@ class BaseComponent {
                 }
 
                 const fullName = hashName + extname;
-                const repath = './public/img/' + fullName;
+                const repath = './public/tempImg/' + fullName;
                 try {
                     fs.rename(files.file.filepath, repath, (err) => {
                         if (err) throw new Error(err);
+                        const newRepath = './public/img/' + fullName;
+                        shrap(repath)
+                            .resize(200, 200, { fit: sharp.fit.inside })
+                            .toFile(newRepath, (err, info) => {
+                                if (err) {
+                                    fs.unlinkSync(repath);
+                                    reject(err);
+                                    console.log(err);
+                                } else {
+                                    fs.unlinkSync(repath);
+                                    resolve(fullName);
+                                };
+                            })
                     });
-                    gm(repath).resize(200,200,'!').write(repath, (err)=>{
-                        if(err) reject(err);
-                        else resolve(fullName);
-                    })
+
                 } catch (err) {
-                    console.log(err);
                     if (fs.existsSync(repath)) {
                         fs.unlinkSync(repath);
                     } else {
