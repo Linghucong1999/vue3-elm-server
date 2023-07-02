@@ -11,9 +11,9 @@
 我想着直接npm一下，下载这两个处理器，再配置 gm。结果发现，人家 要在配置本地环境&#x26C4;
 
 我放弃了使用 [gm](https://www.npmjs.com/package/gm)，结果很好，我在社区里发现了 [sharp](https://www.npmjs.com/package/sharp)，也是处理图片的；
-引用官方的说法：==The typical use case for this high speed Node.js module is to convert large images in common formats to smaller, web-friendly JPEG, PNG, WebP, GIF and AVIF images of varying dimensions.==
+引用官方的说法：<font color=red size=4 face="微软雅黑">The typical use case for this high speed Node.js module is to convert large images in common formats to smaller, web-friendly JPEG, PNG, WebP, GIF and AVIF images of varying dimensions.</font>
 
-**最最重要的**==不需要安装其他处理器==
+**最最重要的**<font color=red size=4 face="微软雅黑">不需要安装其他处理器</font>
 ```shell
 npm i sharp --save
 ```
