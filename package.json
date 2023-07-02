@@ -28,10 +28,10 @@
     "express-session": "^1.17.3",
     "express-winston": "^4.2.0",
     "formidable": "^2.1.1",
-    "gm": "^1.25.0",
     "mongoose": "^7.2.2",
     "node-fetch": "^2.6.11",
     "qiniu": "^6.1.13",
+    "sharp": "^0.32.1",
     "time-formater": "^1.1.3",
     "winston": "^3.9.0"
   }
