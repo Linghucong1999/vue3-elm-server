@@ -58,3 +58,16 @@ fs.rename(files.file.filepath, repath, (err) => {
                             })
                     });
 ```
+
+## &#x1F353;关于开发用户API历程
+对于用户登录操作中生成的验证码，我这边服务器是挂载在cookie上传输给客户端&#x1F463;
+
+```JavaScript
+res.cookie('cap', cap, { maxAge: 300000, httpOnly: true });
+```
+然后生成验证码这个流程的照片使用base64，主要是用了captchapng这个包，我目前理解的也是这个包了，简单方便快捷
+
+```
+npm i captchapng --save
+```
+
