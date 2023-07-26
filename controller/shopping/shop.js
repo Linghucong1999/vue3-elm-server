@@ -3,6 +3,7 @@ const AddressConpont = require('../../prototype/addressComponent.js');
 const Food = require('./food.js');
 const formidable = require('formidable');
 const CategoryHandle = require('./category.js');
+const Rating = require('../ugc/rating');
 
 
 class Shop extends AddressConpont {
@@ -10,7 +11,7 @@ class Shop extends AddressConpont {
         super()
         this.addShop = this.addShop.bind(this);
         this.getRestaurants = this.getRestaurants.bind(this);
-        this.searchRestaurant = this.searchRestaurant.bind(this);
+        // this.searchRestaurant = this.searchRestaurant.bind(this);
     }
 
     //添加商铺
@@ -62,7 +63,6 @@ class Shop extends AddressConpont {
                 })
                 return
             }
-
             const opening_hours = fields.startTime && fields.endTime ? fields.startTime + '/' + fields.endTime : '8:30/20:30';
             const newShop = {
                 name: fields.name,
@@ -108,7 +108,6 @@ class Shop extends AddressConpont {
                 }
 
             }
-
             //配送方式
             if (fields.delivery_mode) {
                 Object.assign(newShop, {
@@ -120,32 +119,34 @@ class Shop extends AddressConpont {
                     }
                 })
             }
-
+            // let activities = JSON.parse(fields.activities);
+            // console.log(fields.activities);
             //商店支持的活动
-            fields.activities.forEach((item, index) => {
-                switch (item.icon_name) {
-                    case '减':
-                        item.icon_color = 'f07373';
-                        item.id = index + 1;
-                        break;
-                    case '特':
-                        item.icon_color = 'edc123';
-                        item.id = index + 1;
-                        break;
-                    case '新':
-                        item.icon_color = '70bc46';
-                        item.id = index + 1;
-                        break;
-                    case '领':
-                        item.icon_color = 'e3ee0d';
-                        item.id = index + 1;
-                        break;
+            if (fields.activities) {
+                fields.activities.forEach((item, index) => {
+                    switch (item.icon_name) {
+                        case '减':
+                            item.icon_color = 'f07373';
+                            item.id = index + 1;
+                            break;
+                        case '特':
+                            item.icon_color = 'edc123';
+                            item.id = index + 1;
+                            break;
+                        case '新':
+                            item.icon_color = '70bc46';
+                            item.id = index + 1;
+                            break;
+                        case '领':
+                            item.icon_color = 'e3ee0d';
+                            item.id = index + 1;
+                            break;
 
-                }
-                newShop.activities.push(item)
+                    }
+                    newShop.activities.push(item)
 
-            })
-
+                })
+            }
             if (fields.bao) {
                 newShop.supports.push({
                     description: '已加入"外卖保"计划,食品安全有保障',
@@ -155,6 +156,7 @@ class Shop extends AddressConpont {
                     name: '外卖保'
                 })
             }
+
             if (fields.onTime) {
                 newShop.supports.push({
                     description: '准时到达,超时赔偿',
@@ -164,6 +166,7 @@ class Shop extends AddressConpont {
                     name: '准时达'
                 })
             }
+
             if (fields.bill) {
                 newShop.supports.push({
                     description: '该商家支持开据发票,请在下单前填写好发票抬头',
@@ -176,15 +179,108 @@ class Shop extends AddressConpont {
 
             try {
                 //保存数据,并增加对应的食品种类的数量
-                const shop=new ShopModel(newShop);
+                const shop = new ShopModel(newShop);
                 await shop.save();
                 CategoryHandle.addCategory(fields.category);
-                
+                Rating.initData(restaurant_id);
+                Food.initData(restaurant_id);
+                res.send({
+                    status: 1,
+                    type: '添加餐馆成功',
+                    shopDetail: newShop,
+                })
 
             } catch (err) {
-
+                res.send({
+                    status: 0,
+                    type: 'ERROR_SERVER',
+                    message: '添加商铺失败'
+                })
             }
         })
 
     }
+
+    //获取餐馆列表
+    async getRestaurants(req, res, next) {
+        const {
+            latitude,
+            longitude,
+            offset = 0,
+            limit = 20,
+            keyword,
+            restaurant_category_id,
+            order_by,
+            extras,
+            delivery_mode = [],
+            support_ids = [],
+            restaurant_category_ids = []
+        } = req.query;
+
+        try {
+            if (!latitude) {
+                throw new Error('latitude参数错误');
+            } else if (!longitude) {
+                throw new Error('longitude参数错误');
+            }
+        } catch (err) {
+            res.send({
+                status: 0,
+                type: 'ERROR_PARAMS',
+                message: err.message,
+            })
+            return
+        }
+
+        let filter = {};
+        //获取对应食品种类
+        if (restaurant_category_ids.length && Number(restaurant_category_ids[0])) {
+            const category = await CategoryHandle.findById(restaurant_category_ids[0]);
+            Object.assign(filter, { category });
+        }
+
+        //按距离，评分，销量等排序
+        let sortBy = {};
+        if (Number(order_by)) {
+            switch (Number(order_by)) {
+                case 1:
+                    Object.assign(sortBy, { float_minimum_order_amount: 1 });
+                    break;
+                case 2:
+                    Object.assign(filter, {
+                        location: {
+                            $near: [longitude, latitude]
+                        }
+                    })
+                    break;
+                case 3:
+                    Object.assign(sortBy, { rating: -1 });
+                    break;
+                case 5:
+                    Object.assign(filter, {
+                        location: {
+                            $near: [longitude, latitude]
+                        }
+                    })
+                    break;
+                case 6:
+                    Object.assign(sortBy, { recent_order_num: -1 });
+                    break;
+            }
+        }
+
+        //查找配送方式
+        if (delivery_mode.length) {
+            delivery_mode.forEach(item => {
+                if ((Number(item))) {
+                    Object.assign(filter, { 'delivery_mode.id': Number(item) });
+                }
+            })
+        }
+
+        //查找活动支持方式
+        
+    }
 }
+
+module.exports = new Shop();
