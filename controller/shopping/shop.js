@@ -295,72 +295,8 @@ class Shop extends AddressConpont {
             }
         }
 
-        // const restaurants = await ShopModel.find(filter, { _id: 0 }).sort(sortBy).limit(Number(limit)).skip(Number(offset));
+        const restaurants = await ShopModel.find(filter, { _id: 0 }).sort(sortBy).limit(Number(limit)).skip(Number(offset));
         const from = latitude + ',' + longitude;
-
-        const restaurants = [
-            {
-                latitude: 39.771075,
-                longitude: 116.351395
-            }, {
-                latitude: 30.12,
-                longitude: 111.17
-            }, {
-                latitude: 31.172,
-                longitude: 116.176
-            }, {
-                latitude: 32,
-                longitude: 116
-            }, {
-                latitude: 31,
-                longitude: 117
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }, {
-                latitude: 40.034852,
-                longitude: 116.319820
-            }
-        ]
         let position = [];
         const maxCourrent = 5;  //并发量最大次数限制
         //获取地图API测量距离
@@ -369,7 +305,15 @@ class Shop extends AddressConpont {
         let results;
         for (const [indexList, itemList] of restaurants.entries()) {
             quernArr.push(itemList);
-            if (count % maxCourrent === 0) {
+            if (count < maxCourrent && indexList === restaurants.length - 1) {
+                results = quernArr.map(async (item, index) => {
+                    const to = item.latitude + ',' + item.longitude;
+                    const distance = await this.getDistance(from, to);
+                    return distance;
+                })
+                position.push(results);
+                quernArr = [];
+            } else if (count % maxCourrent === 0) {
                 results = quernArr.map(async (item, index) => {
                     const to = item.latitude + ',' + item.longitude;
                     const distance = await this.getDistance(from, to);
@@ -379,47 +323,34 @@ class Shop extends AddressConpont {
                 quernArr = [];
                 count = 0;
                 await new Promise(resolve => setTimeout(resolve, 1000));
-            } else if (count < maxCourrent && indexList === restaurants.length - 1) {
-                results = quernArr.map(async (item, index) => {
-                    const to = item.latitude + ',' + item.longitude;
-                    const distance = await this.getDistance(from, to);
-                    return distance;
-                })
-                position.push(results);
-                quernArr = [];
+
             }
             count++;
         }
-        position.forEach(async (item, index) => {
-            Promise.all(position[index]).then(res => {
-                console.log(res);
-            }).catch(err => {
-                console.log(err);
+        let positionArr = await Promise.all(position.flat(Infinity));
+        try {
+            if (restaurants.length) {
+                restaurants.map((item, index) => {
+                    return Object.assign(item, positionArr[index]);
+                })
+            }
+        } catch (err) {
+            //腾讯地图日用量达到上限,需要优化解决
+            console.log("腾讯地图调用出问题" + err);
+            restaurants.map((item, index) => {
+                return Object.assign(item, { distance: "5公里", order_lead_time: '40分钟' });
             })
-        })
+        }
 
-        // const promise = restaurants.map(async (item, index) => {
-        //     if (index > 0 && index % maxCourrent === 0) {
-        //         await new Promise(resolve => {
-        //             setTimeout(resolve, 1000);
-        //         })
-        //     }
-        //     const to = item.latitude + ',' + item.longitude;
-        //     const distance = await this.getDistance(from, to);
-        //     return distance;
-        // })
-        // Promise.all(promise).then(res => {
-        //     console.log(res);
-        // }).catch(err => { throw new Error("并发限制") });
-        // try{
-        //     if(restaurants.length){
-        //         //获取信息合并
-
-        //     }
-        // }catch(err){
-
-        // }
-        res.send({ 1: '12' });
+        try {
+            res.send(restaurants);
+        } catch (err) {
+            res.send({
+                status: 0,
+                type: 'ERROR_GET_SHOP_LIST',
+                message: '获取店铺列表数据失败'
+            })
+        }
     }
 }
 
