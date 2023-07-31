@@ -71,3 +71,84 @@ res.cookie('cap', cap, { maxAge: 300000, httpOnly: true });
 npm i captchapng --save
 ```
 
+## 关于处理使用腾讯地图API控制并发量请求处理
+
+在个体用户中，腾讯API的并发请求只能每秒5次，那这么就限制我们开发，对于大量数据如何做到并发控制是我们需要考虑的；
+
+&#x1F349; **外同步，内异步，进栈入栈思想**
+
+外层循环时同步，把数据压入规定的长度的数组里面，然后这个数组里面的数据就是异步请求，达到控制并发量的效果;
+```JavaScript
+let position = [];
+const maxCourrent = 5;  //并发量最大次数限制
+//获取地图API测量距离
+let count = 0;
+let quernArr = [];
+let results;
+for (const [indexList, itemList] of restaurants.entries()) {
+    quernArr.push(itemList);
+}
+```
+这时候判断是否满足并发限制
+```JavaScript
+let position = [];
+const maxCourrent = 5;  //并发量最大次数限制
+//获取地图API测量距离
+let count = 0;
+let quernArr = [];
+let results;
+for (const [indexList, itemList] of restaurants.entries()) {
+    quernArr.push(itemList);
+    if (count % maxCourrent === 0) {
+        results = quernArr.map(async (item, index) => {
+                const to = item.latitude + ',' + item.longitude;
+                const distance = await this.getDistance(from, to);
+                return distance;
+        })
+        position.push(results);
+        quernArr = [];
+        count = 0;
+        await new Promise(resolve => setTimeout(resolve, 1000));    //需要等待一秒，因为后续有后续的数据进入
+    }
+}
+```
+对于如果最后不满足并发限制的数据另外执行，同时最后就对返回的`Promise`统一执行一次`Promise.all()`
+```JavaScript
+let position = [];
+const maxCourrent = 5;  //并发量最大次数限制
+//获取地图API测量距离
+let count = 0;
+let quernArr = [];
+let results;
+for (const [indexList, itemList] of restaurants.entries()) {
+    quernArr.push(itemList);
+    if (count % maxCourrent === 0) {
+        results = quernArr.map(async (item, index) => {
+            const to = item.latitude + ',' + item.longitude;
+            const distance = await this.getDistance(from, to);
+            return distance;
+        })
+        position.push(results);
+        quernArr = [];
+        count = 0;
+        await new Promise(resolve => setTimeout(resolve, 1000));    //需要等待一秒，因为后续有后续的数据进入
+    }else if (count < maxCourrent && indexList === restaurants.length - 1) {
+            results = quernArr.map(async (item, index) => {
+                const to = item.latitude + ',' + item.longitude;
+                const distance = await this.getDistance(from, to);
+                return distance;
+            })
+            position.push(results);
+            quernArr = [];
+    }
+    count++;
+}
+
+position.forEach(async (item, index) => {
+    Promise.all(position[index]).then(res => {
+                console.log(res);
+        }).catch(err => {
+                console.log(err);
+    })
+})
+```
