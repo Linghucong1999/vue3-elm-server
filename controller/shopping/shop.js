@@ -239,7 +239,7 @@ class Shop extends AddressConpont {
             Object.assign(filter, { category });
         }
 
-        //按距离，评分，销量等排序
+        //按距离，评分，销量等排序,4是默认排序
         let sortBy = {};
         if (Number(order_by)) {
             switch (Number(order_by)) {
@@ -279,7 +279,147 @@ class Shop extends AddressConpont {
         }
 
         //查找活动支持方式
-        
+        if (support_ids.length) {
+            const filterArr = [];
+            support_ids.forEach(item => {
+                if (Number(item) && Number(item) !== 8) {
+                    filterArr.push(Number(item));
+                } else if (Number(item) === 8) {
+                    //品牌保证特殊处理
+                    Object.assign(filter, { is_premium: true });
+                }
+            })
+            if (filterArr.length) {
+                //匹配同时拥有多种活动数据
+                Object.assign(filter, { 'supports.id': { $all: filterArr } });
+            }
+        }
+
+        // const restaurants = await ShopModel.find(filter, { _id: 0 }).sort(sortBy).limit(Number(limit)).skip(Number(offset));
+        const from = latitude + ',' + longitude;
+
+        const restaurants = [
+            {
+                latitude: 39.771075,
+                longitude: 116.351395
+            }, {
+                latitude: 30.12,
+                longitude: 111.17
+            }, {
+                latitude: 31.172,
+                longitude: 116.176
+            }, {
+                latitude: 32,
+                longitude: 116
+            }, {
+                latitude: 31,
+                longitude: 117
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }, {
+                latitude: 40.034852,
+                longitude: 116.319820
+            }
+        ]
+        let position = [];
+        const maxCourrent = 5;  //并发量最大次数限制
+        //获取地图API测量距离
+        let count = 0;
+        let quernArr = [];
+        let results;
+        for (const [indexList, itemList] of restaurants.entries()) {
+            quernArr.push(itemList);
+            if (count % maxCourrent === 0) {
+                results = quernArr.map(async (item, index) => {
+                    const to = item.latitude + ',' + item.longitude;
+                    const distance = await this.getDistance(from, to);
+                    return distance;
+                })
+                position.push(results);
+                quernArr = [];
+                count = 0;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } else if (count < maxCourrent && indexList === restaurants.length - 1) {
+                results = quernArr.map(async (item, index) => {
+                    const to = item.latitude + ',' + item.longitude;
+                    const distance = await this.getDistance(from, to);
+                    return distance;
+                })
+                position.push(results);
+                quernArr = [];
+            }
+            count++;
+        }
+        position.forEach(async (item, index) => {
+            Promise.all(position[index]).then(res => {
+                console.log(res);
+            }).catch(err => {
+                console.log(err);
+            })
+        })
+
+        // const promise = restaurants.map(async (item, index) => {
+        //     if (index > 0 && index % maxCourrent === 0) {
+        //         await new Promise(resolve => {
+        //             setTimeout(resolve, 1000);
+        //         })
+        //     }
+        //     const to = item.latitude + ',' + item.longitude;
+        //     const distance = await this.getDistance(from, to);
+        //     return distance;
+        // })
+        // Promise.all(promise).then(res => {
+        //     console.log(res);
+        // }).catch(err => { throw new Error("并发限制") });
+        // try{
+        //     if(restaurants.length){
+        //         //获取信息合并
+
+        //     }
+        // }catch(err){
+
+        // }
+        res.send({ 1: '12' });
     }
 }
 
