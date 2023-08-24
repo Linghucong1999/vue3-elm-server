@@ -55,7 +55,6 @@ class User extends AddressComponent {
 
         try {
             const user = await UserModel.findOne({ username });
-            const confirmpassword=await bcrypt.compare(password, user.password)
             //如果用户名不存在直接创建一个新用户
             if (!user) {
                 const newpassword = await bcrypt.hash(password, salt);
@@ -74,7 +73,7 @@ class User extends AddressComponent {
                     success: '注册成功'
                 });
 
-            } else if (!confirmpassword) {
+            } else if (!(await bcrypt.compare(password, user.password))) {
                 res.send({
                     status: 0,
                     type: 'ERROR_PASSWORD',
@@ -89,6 +88,7 @@ class User extends AddressComponent {
                 })
             }
         } catch (err) {
+            console.log(err);
             res.send({
                 status: 0,
                 type: 'ERROR_USER_FAILED',
@@ -201,6 +201,7 @@ class User extends AddressComponent {
 
         try {
             const user = await UserModel.findOne({ username });
+
             if (!user) {
                 res.send({
                     status: 0,
@@ -249,6 +250,52 @@ class User extends AddressComponent {
             })
         }
     }
+
+    async conditionGetUser(req, res, next) {
+        const { username = '', city = '', registe_time = '', limit = 20, offset = 0 } = req.query;
+        try {
+            if (username !== '') {
+                const user = await UserInfoModel.findOne({ username }, { _id: 0, __v: 0 });
+                if (user.length !== 0) {
+                    res.send({
+                        status: 1,
+                        user
+                    })
+                } else {
+                    res.send({
+                        status: 0,
+                        user: '根据用户查找,查无此人'
+                    })
+                }
+
+            } else if (username === '' && registe_time !== '' && city !== '') {
+                const users = await UserInfoModel.find({ registe_time: { $regex: new RegExp(`${registe_time}`, 'i') }, city: { $regex: `^${city}` } }, { _id: 0, __v: 0 }).limit(Number(limit)).skip(Number(offset));
+                if (users.length !== 0) {
+                    res.send({
+                        status: 1,
+                        user: users
+                    })
+                } else {
+                    res.send({
+                        status: 0,
+                        user: '这段时间,这段地区,查无此人'
+                    })
+                }
+            } else {
+                res.send({
+                    status: 0,
+                    user: '查无此人'
+                })
+            }
+        } catch (err) {
+            res.send({
+                status: 0,
+                type: 'GET_ERROR_USER',
+                message: '查询用户失败'
+            })
+        }
+    }
+
 
     async getUserCount(req, res, next) {
         try {
