@@ -53,12 +53,14 @@ class AdminAxios extends AddressComponent {
                     status: 1,
                     success: '注册管理员成功'
                 })
-            } else if (!bcrypt.compare(password, admin.password)) {
+                return
+            } else if (!(await bcrypt.compare(password, admin.password))) {
                 res.send({
                     status: 0,
                     type: 'ERROR_PASSWORD',
                     message: '该用户已存在,密码错误'
                 })
+                return
             } else {
                 req.session.admin_id = admin.id;
                 res.send({
@@ -67,6 +69,7 @@ class AdminAxios extends AddressComponent {
                 })
             }
         } catch (err) {
+            console.log(err);
             res.send({
                 status: 0,
                 type: 'ERROR_ADMIN_FAILED',
@@ -128,10 +131,19 @@ class AdminAxios extends AddressComponent {
 
     async singout(req, res, next) {
         try {
-            delete req.session.admin_id;
-            res.send({
-                status: 1,
-                success: '退出成功',
+            await req.session.destroy(err => {
+                if (err) {
+                    res.send({
+                        status: 0,
+                        message: '退出失败'
+                    })
+                } else {
+                    res.setHeader('Set-Cookie', 'connect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+                    res.send({
+                        status: 1,
+                        success: '退出成功'
+                    })
+                }
             })
         } catch (err) {
             res.send({
@@ -157,7 +169,9 @@ class AdminAxios extends AddressComponent {
     }
 
     async updataAvatar(req, res, next) {
-        const admin_id = req.params.admin_id;
+        const qid = req.params.admin_id;
+        const sid = req.session.admin_id;
+        const admin_id = sid || qid;
         if (!admin_id || !Number(admin_id)) {
             res.send({
                 status: 0,
@@ -168,22 +182,70 @@ class AdminAxios extends AddressComponent {
         }
 
         try {
-            const image_path=await this.qiniucon(req);
-            await AdminModel.findOneAndUpdate({id:admin_id},{$set:{avatar:image_path}});
+            const image_path = await this.getPath(req);
+            await AdminModel.findOneAndUpdate({ id: admin_id }, { $set: { avatar: image_path } });
             res.send({
-                status:1,
+                status: 1,
                 image_path
             })
             return
         } catch (err) {
             res.send({
-                status:0,
-                type:'ERROR_UPLOAD_IMG',
-                message:'上传图片失败'
+                status: 0,
+                type: 'ERROR_UPLOAD_IMG',
+                message: '上传图片失败'
             })
             return
         }
     }
+
+
+    //获取部分特定管理员展示到客户端
+    async conditionGetAdmin(req, res, next) {
+        const { user_name = '', city = '', creat_time = '', limit = 20, offset = 0 } = req.query;
+        try {
+            let query = {};
+            if (user_name !== '') {
+                query.user_name = user_name;
+            }
+            if (creat_time !== '') {
+                query.creat_time = { $regex: new RegExp(`${creat_time}`, 'i') };
+            }
+            if (city !== '') {
+                query.city = { $regex: `^${city}` };
+            }
+            const users = await AdminModel.find(query, { _id: 0, __v: 0, password: 0 });
+            if (users.length !== 0) {
+                res.send({
+                    status: 1,
+                    user: users,
+                })
+            } else {
+                let message = '';
+                if (user_name !== '' && creat_time !== '' && city !== '') {
+                    message = '这段时间,这段地区,查无此人';
+                } else if (user_name === '' && creat_time !== '' && city === '') {
+                    message = '这段时间查无此人';
+                } else if (user_name === '' && creat_time === '' && city !== '') {
+                    message = '这段地区查无此人';
+                } else {
+                    message = '查无此人';
+                }
+
+                res.send({
+                    status: 0,
+                    message: message,
+                })
+            }
+        } catch (err) {
+            res.send({
+                status: 0,
+                type: 'GET_ERROR_USER',
+                message: '查询用户失败'
+            })
+        }
+    }
+
 }
 
 module.exports = new AdminAxios();
