@@ -1,5 +1,6 @@
 # vue3-elm-server
-基于Node.js的web框架Express.js，数据库使用Mongodb开发的一款web服务器
+基于Node.js的web框架Express.js，数据库使用Mongodb开发的一款web服务器 
+# 这个库已停止更新，[最新库已迁移至](https://github.com/Linghucong1999/NodeExpressAndCxs)
 
 [厨生鲜后台管理系统](https://github.com/Linghucong1999/Vue3-CXSH)
 
